@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: microservicio-cliente-juridico
+  cloud:
+    config:
+      enabled: true
+      uri: http://localhost:7000    
+  banner:
+    location: classpath:banner/banner.txt
+    image:
+     location: classpath:fotocreador/microservicios.png  

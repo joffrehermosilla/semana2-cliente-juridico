@@ -19,7 +19,7 @@ proyecto semana2
 
 
 
-inhtegrantes:
+INTEGRANTES:
 Segundo william Guzman Correa
 Joffre Hermosilla Salas
 
