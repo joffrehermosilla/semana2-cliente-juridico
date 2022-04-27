@@ -1,7 +1,6 @@
 package nttdata.bootcamp.microservicios.businessclient.documents;
 
 import java.util.Date;
-import java.util.List;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -14,24 +13,13 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection = "corporate-client")
-public class CorporateClient {
+@Document(collection = "type-corporate-client")
+public class TypeCorporateClient {
 	@Id
 	private String id;
 
-	private String corporatename;
-
-	private String ruc;
-
-	private String clientStatus;
-
-//	private String businessrepresentId;
-
-	private List<TypeCorporateClient> listtypeCorporate;
-
-	private TypeCorporateClient type;
+	private String typename;
 
 	@DateTimeFormat(pattern = "yyyy-MM-dd")
 	private Date createAt;
-
 }

@@ -9,3 +9,10 @@ spring:
     location: classpath:banner/banner.txt
     image:
      location: classpath:fotocreador/microservicios.png  
+     
+     
+     
+     
+config:
+ balanceador:
+  test: prueba balanceador de microservicio-cliente-juridico
