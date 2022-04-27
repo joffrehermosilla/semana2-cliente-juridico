@@ -18,3 +18,7 @@ DANIEL AUGUSTO PRADO CUSSI
 
 
 ![ScreenShot](https://github.com/joffrehermosilla/semana2/blob/master/Diagrama%20de%20Microservicios%20solucion%20semana2.drawio.png) 
+
+
+
+![ScreenShot](https://github.com/joffrehermosilla/semana2/blob/master/continuacion%20de%20entregables.drawio.png) 
