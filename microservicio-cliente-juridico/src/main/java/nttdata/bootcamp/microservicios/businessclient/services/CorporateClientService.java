@@ -20,4 +20,6 @@ public interface CorporateClientService {
 	public Mono<BusinessRepresentative> feignsave(BusinessRepresentative business, String id);
 
 	public ResponseEntity<Mono<?>> feignsaves(BusinessRepresentative businessrepresentative, String corporateClientId);
+
+	public Flux<BusinessRepresentative> getBusinsessRepresentative(String id);
 }

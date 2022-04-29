@@ -28,7 +28,8 @@ import nttdata.bootcamp.microservicios.businessclient.documents.TypeCorporateCli
 import nttdata.bootcamp.microservicios.businessclient.documents.feign.BusinessRepresentative;
 import nttdata.bootcamp.microservicios.businessclient.services.CorporateClientService;
 import nttdata.bootcamp.microservicios.businessclient.services.TypeCorporateClientService;
-
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -73,6 +74,36 @@ public class CorporateClientController {
 	public Mono<CorporateClient> searchById(@PathVariable String id) {
 		LOGGER.info("Corporate Client id: " + service.findById(id) + " con codigo: " + id);
 		return service.findById(id);
+	}
+
+	@GetMapping("/corporate-representatives/{id}")
+	public Flux<BusinessRepresentative> searchAllRepresentativesfromCompany(@PathVariable String id) {
+		LOGGER.info(
+				"BUSINESS REPRESENTATIVE find by Corporate Client id: " + service.findById(id) + " con codigo: " + id);
+		return service.getBusinsessRepresentative(id);
+	}
+
+	@GetMapping("/corporate-representatives-test/{id}")
+	public Flux<BusinessRepresentative> searchAllRepretest(@PathVariable String id) {
+		BusinessRepresentative busyx = new BusinessRepresentative();
+		List<BusinessRepresentative> bussinesslist = new ArrayList<>();
+		busyx.setCorporateClientId(id);
+
+		WebClient client = WebClient.create();
+
+		Mono.just(bussinesslist).doOnNext(x -> {
+			x.add(busyx);
+		}).onErrorReturn(bussinesslist).onErrorResume(e -> Mono.just(bussinesslist))
+				.onErrorMap(f -> new InterruptedException(f.getMessage())).subscribe(x -> LOGGER.info(x.toString()));
+
+		Flux<BusinessRepresentative> representatives = Flux.fromIterable(bussinesslist).flatMapSequential(z -> {
+			Mono<BusinessRepresentative> representante = client.get()
+					.uri("localhost:8090/api/representante/empresarial//corporate-client/{corporateClientId}", z)
+					.retrieve().bodyToMono(BusinessRepresentative.class);
+			return representante;
+		});
+
+		return representatives;
 	}
 
 	@PostMapping("/create-corporate-client")
@@ -255,6 +286,7 @@ public class CorporateClientController {
 		// return ResponseEntity.badRequest().body(errores);
 	}
 
+	// bloqueando con feign client
 	@PostMapping("/create-business-representative/{id}")
 	public ResponseEntity<Mono<?>> saveBusinessRepresentative(@Valid @RequestBody BusinessRepresentative business,
 			@PathVariable String id) {
@@ -282,6 +314,7 @@ public class CorporateClientController {
 
 	}
 
+	// bloqueando con feign Client
 	@PostMapping("/create-business-simple-representative/{id}")
 	public ResponseEntity<Mono<?>> saveSimpleRepresentative(@Valid @RequestBody BusinessRepresentative business,
 			@PathVariable String id) {
