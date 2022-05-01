@@ -16,3 +16,8 @@ spring:
 config:
  balanceador:
   test: prueba balanceador de microservicio-cliente-juridico
+  
+  
+webclient:
+ representante:
+  conexion: http://localhost:8090/api/representante/empresarial/

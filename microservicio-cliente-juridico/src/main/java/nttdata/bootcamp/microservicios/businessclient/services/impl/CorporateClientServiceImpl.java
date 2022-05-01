@@ -1,14 +1,14 @@
 package nttdata.bootcamp.microservicios.businessclient.services.impl;
 
-import java.util.Collections;
+import java.util.ArrayList;
+
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -39,6 +39,66 @@ public class CorporateClientServiceImpl implements CorporateClientService {
 
 	@Autowired
 	BusinessRepresentativeFeignClient businessFeignRepository;
+
+	WebClient client = WebClient.create(rutaconfig);
+
+	private Mono<BusinessRepresentative> getBussinesRepresentativeByCorparateIdMono(
+			List<BusinessRepresentative> listrepre, String corporateId) {
+		Mono<BusinessRepresentative> repre =
+				client
+				.get()
+				.uri("corporate-client/{corporateClientId}", corporateId)
+				.retrieve()
+				.bodyToMono(BusinessRepresentative.class);
+		return repre;
+	}
+
+	private Flux<BusinessRepresentative> getBussinesRepresentativeByCorparateIdflux(
+			List<BusinessRepresentative> listrepre, String corporateId) {
+		BusinessRepresentative repre = new BusinessRepresentative();
+		client
+		.get()
+		.uri("corporate-client/{corporateClientId}", corporateId)
+		.retrieve()
+				
+		.bodyToFlux(BusinessRepresentative.class).subscribe(listrepre::add);
+
+		return Flux.just(repre);
+	}
+
+	@Override
+	public Flux<BusinessRepresentative> getBusinsessRepresentative(String corporateClientId) {
+
+		List<BusinessRepresentative> business = new ArrayList<>();
+
+		Flux<BusinessRepresentative> employeeFlux =
+
+				Flux.fromIterable(business).flatMap(x -> {
+					return this.getBussinesRepresentativeByCorparateIdMono(business, corporateClientId);
+					// return this.getBussinesRepresentativeByCorparateIdflux(business,
+					// corporateClientId);
+				});
+
+		return employeeFlux;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 	@Override
 	public Mono<CorporateClient> findById(String id) {
@@ -76,37 +136,6 @@ public class CorporateClientServiceImpl implements CorporateClientService {
 	public Mono<BusinessRepresentative> feignsave(BusinessRepresentative business, String id) {
 		business.setCorporateClientId(id);
 		return businessFeignRepository.createSimpleRepre(business);
-	}
-
-	@Override
-	public Flux<BusinessRepresentative> getBusinsessRepresentative(String corporateClientId) {
-
-		/*
-		 * Flux<BusinessRepresentative> businessRepresentative =
-		 * restTemplate.getForObject(
-		 * "localhost:8090/api/cliente/juridico/corporate-client/" + corporateClientId,
-		 * businessRepresentative);
-		 */
-
-		// WebClient client = WebClient.create();
-		WebClient client = WebClient.create(rutaconfig);
-
-		/*
-		 * client = WebClient.builder() .baseUrl("http://localhost:8080")
-		 * .defaultCookie("cookieKey", "cookieValue")
-		 * .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-		 * .defaultUriVariables(Collections.singletonMap("url",
-		 * "http://localhost:8080")) .build();
-		 */
-
-		Flux<BusinessRepresentative> employeeFlux = client.get()
-				.uri("/corporate-client/{corporateClientId}", corporateClientId)
-				.retrieve()
-				.bodyToFlux(BusinessRepresentative.class);
-
-		employeeFlux.subscribe(x -> LOGGER.info("conexion a microservicio representante empresarial" + x));
-
-		return employeeFlux;
 	}
 
 }

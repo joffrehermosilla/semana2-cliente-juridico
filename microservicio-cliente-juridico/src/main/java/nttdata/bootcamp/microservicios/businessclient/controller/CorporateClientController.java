@@ -30,6 +30,9 @@ import nttdata.bootcamp.microservicios.businessclient.services.CorporateClientSe
 import nttdata.bootcamp.microservicios.businessclient.services.TypeCorporateClientService;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,6 +48,29 @@ public class CorporateClientController {
 
 	@Value("${config.balanceador.test}")
 	private String balanceadorTest;
+
+	@Value("${webclient.representante.conexion}")
+	private String rutaconfig;
+
+	WebClient client = WebClient.create(rutaconfig);
+
+	private Mono<BusinessRepresentative> getBussinesRepresentativeByCorparateIdMono(
+			List<BusinessRepresentative> listrepre, String corporateId) {
+
+		Mono<BusinessRepresentative> repre = client.get().uri("corporate-client/{corporateClientId}", corporateId)
+				.retrieve().bodyToMono(BusinessRepresentative.class);
+		return repre;
+	}
+
+	private Flux<BusinessRepresentative> getBussinesRepresentativeByCorparateIdflux(
+			List<BusinessRepresentative> listrepre, String corporateId) {
+		BusinessRepresentative repre = new BusinessRepresentative();
+
+		client.get().uri("corporate-client/{corporateClientId}", corporateId).retrieve()
+				.bodyToFlux(BusinessRepresentative.class).subscribe(listrepre::add);
+
+		return Flux.just(repre);
+	}
 
 	@GetMapping("/balanceador-test")
 	public ResponseEntity<?> balanceadorTest() {
@@ -63,8 +89,23 @@ public class CorporateClientController {
 		return corp;
 	}
 
+	@GetMapping("/webclient/all")
+	public Flux<CorporateClient> getProducts() {
+		CorporateClient report = new CorporateClient();
+		WebClient webClient = WebClient.create(rutaconfig);
+
+		List<BusinessRepresentative> busylist = new ArrayList<>();
+		LOGGER.info("SHOW CORP CLIENT COMPLETE WITH TYPES AND BUSINESS REPRESENTATIVES");
+		this.getBussinesRepresentativeByCorparateIdflux(busylist, report.getId());
+
+		LOGGER.info(busylist.toString());
+		report.setBusinessRepreseentative(busylist);
+		return Flux.just(report);
+	}
+
 	@GetMapping("/type-all")
 	public Flux<TypeCorporateClient> searchAllTypes() {
+
 		Flux<TypeCorporateClient> type = typeservice.findAlls();
 		LOGGER.info("CORPORATE LEGAL CLIENT registered: " + type);
 		return type;
@@ -76,34 +117,38 @@ public class CorporateClientController {
 		return service.findById(id);
 	}
 
+	// @CircuitBreaker(name = "RepreBusinessCB", fallbackMethod =
+	// "fallBackGetRepresentatvivefromCompany")
+	// @TimeLimiter(name = "RepreBusinessCB")
 	@GetMapping("/corporate-representatives/{id}")
-	public Flux<BusinessRepresentative> searchAllRepresentativesfromCompany(@PathVariable String id) {
-		LOGGER.info(
-				"BUSINESS REPRESENTATIVE find by Corporate Client id: " + service.findById(id) + " con codigo: " + id);
-		return service.getBusinsessRepresentative(id);
+	public ResponseEntity<Flux<?>> searchAllRepresentativesfromCompany(@PathVariable String id) {
+		LOGGER.info("BUSINESS REPRESENTATIVE find by Corporate Client id: " + service.getBusinsessRepresentative(id)
+				+ " con codigo: " + id);
+		Flux<BusinessRepresentative> fx = service.getBusinsessRepresentative(id);
+
+		if (fx != null) {
+
+			return new ResponseEntity<>(fx, HttpStatus.CREATED);
+		}
+
+		return new ResponseEntity<>(Flux.just(new BusinessRepresentative()), HttpStatus.I_AM_A_TEAPOT);
 	}
 
-	@GetMapping("/corporate-representatives-test/{id}")
-	public Flux<BusinessRepresentative> searchAllRepretest(@PathVariable String id) {
-		BusinessRepresentative busyx = new BusinessRepresentative();
-		List<BusinessRepresentative> bussinesslist = new ArrayList<>();
-		busyx.setCorporateClientId(id);
+	private ResponseEntity<Flux<?>> fallBackGetRepresentatvivefromCompany(@PathVariable String id) {
+		return new ResponseEntity<>(Flux.just(
+				"circuit breaker conexion failed between Corporate-Client and Business Representative Microservices"),
+				HttpStatus.I_AM_A_TEAPOT);
+	}
 
-		WebClient client = WebClient.create();
+	@GetMapping("/test-corporate-representatives/{id}")
+	public Flux<BusinessRepresentative> getBusinessRepresentative(@PathVariable String corporateId) {
+		LOGGER.info("CONEXION ESTABLECIDA");
+		Flux<BusinessRepresentative> tweetFlux = WebClient.create(rutaconfig).get()
+				.uri("corporate-client/{corporateId}", corporateId).retrieve().bodyToFlux(BusinessRepresentative.class);
 
-		Mono.just(bussinesslist).doOnNext(x -> {
-			x.add(busyx);
-		}).onErrorReturn(bussinesslist).onErrorResume(e -> Mono.just(bussinesslist))
-				.onErrorMap(f -> new InterruptedException(f.getMessage())).subscribe(x -> LOGGER.info(x.toString()));
-
-		Flux<BusinessRepresentative> representatives = Flux.fromIterable(bussinesslist).flatMapSequential(z -> {
-			Mono<BusinessRepresentative> representante = client.get()
-					.uri("localhost:8090/api/representante/empresarial//corporate-client/{corporateClientId}", z)
-					.retrieve().bodyToMono(BusinessRepresentative.class);
-			return representante;
-		});
-
-		return representatives;
+		tweetFlux.subscribe(tweet -> LOGGER.info(tweet.toString()));
+		LOGGER.info("Exiting NON-BLOCKING Controller!");
+		return tweetFlux;
 	}
 
 	@PostMapping("/create-corporate-client")
